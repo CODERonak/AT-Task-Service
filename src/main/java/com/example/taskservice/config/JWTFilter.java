@@ -4,17 +4,20 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.taskservice.client.AuthServiceClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 @Component
 @RequiredArgsConstructor
 // OncePerRequestFilter = runs exactly once per HTTP request
-public class JwtFilter extends OncePerRequestFilter {
+public class JWTFilter extends OncePerRequestFilter {
 
     private final AuthServiceClient authServiceClient;
 
@@ -24,29 +27,30 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Read the "Authorization" header: "Bearer eyJhbGciOi..."
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            // No token provided — reject with 401 Unauthorized
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing token");
+            filterChain.doFilter(request, response); // Let it pass to SecurityConfig to handle 401
             return;
         }
 
-        // Strip "Bearer " prefix to get the raw token
         String token = authHeader.substring(7);
 
-        // Ask Auth Service if this token is valid
-        if (!authServiceClient.validateToken(token)) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-            return;
+        // 1. Validate the token
+        if (authServiceClient.validateToken(token)) {
+            String email = authServiceClient.getUsernameFromToken(token);
+
+            // 2. Create an Authentication object
+            // We use an empty list for authorities for now (or add Roles)
+            var authToken = new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
+
+            // 3. Set it in the Context
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            // 4. Store email for your controller
+            request.setAttribute("email", email);
         }
 
-        // Token is valid — store username in request attribute for controllers
-        String email = authServiceClient.getUsernameFromToken(token);
-        request.setAttribute("email", email);
-
-        // Pass request along to the next filter/controller
         filterChain.doFilter(request, response);
     }
 }

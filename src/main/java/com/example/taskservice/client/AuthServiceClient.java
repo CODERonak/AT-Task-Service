@@ -9,6 +9,6 @@ public interface AuthServiceClient {
     @PostMapping("/auth/validate")
     boolean validateToken(@RequestParam("token") String token);
 
-    @GetMapping("/auth/username")
+    @GetMapping("/auth/email")
     String getUsernameFromToken(@RequestParam("token") String token);
 }

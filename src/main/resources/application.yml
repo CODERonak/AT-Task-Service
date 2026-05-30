@@ -21,3 +21,9 @@ spring:
    user:
      name: boot
      password: spring
+
+logging:
+  level:
+    org:
+      springframework:
+        security: TRACE
