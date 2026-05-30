@@ -1,0 +1,11 @@
+package com.example.taskservice.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.taskservice.model.Task;
+
+public interface TaskRepository extends JpaRepository<Task, Long> {
+    List<Task> findByOwnerEmail(String ownerEmail);
+}
